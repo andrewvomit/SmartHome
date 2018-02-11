@@ -1,4 +1,20 @@
 
+struct Light {
+    int title;
+    int bright;
+    int turnOn;
+};
+
+struct LED {
+    int title;
+    int red;
+    int green;
+    int blue;
+    int turnOn;
+};
+
+String requestString;
+
 void setup()
 {
   // Откроем Serial для связи с компьютером, установим скорость и подождём пока установится соединение
@@ -10,33 +26,27 @@ void setup()
   // Скорость по умолчанию для модуля Wi-Fi равна 115200 бод
   Serial1.begin(9600);
   delay(1000);
-
-  // Настроим сервер
-  Serial1.write("AT+CIPSERVER=1,80\r\n");
-  delay(2000);
 }
  
 void loop()
-{  
-
-  /*
+{
   // Если приходят данные из Serial1 — отправим их в монитор порта Arduino IDE
   if (Serial1.available()) {
-    char symbol = Serial1.read();
-    Serial.write(symbol);
-    Serial.write(int(symbol));
+    requestString = Serial1.readString();
+    Serial.println(requestString);
+    
+    Serial.println("result = ");
+    String url = parseRequest(requestString);
+    Serial.println(url);
+    
+    String title = getTitle(url);
+    if (title == "mainLight") {
+      Light mainLight = parseLight(url);
+      Serial.println(mainLight.bright);
+    } else if (title == "led") {
+      LED led = parseLED(url);
+    }    
   }
-  */
-
-  Serial.println("new string");
-  String string = wifiSerialString();
-  Serial.println(string);
-
-  /*
-  if (wifiSerial("OK")==0) {
-    Serial.write("Motor 1 -> Online\n");
-  }
-  */
     
   // Если приходят данные c компьютера - отправим их в модуль
   if (Serial.available()) {
@@ -44,25 +54,77 @@ void loop()
   }
 }
 
-//
-//
-String wifiSerialString() 
-{
-  String inString; // Приходящая строка
-  bool endOfString = false;
+String parseRequest(String string) {
 
-  while (Serial1.available() && !endOfString) 
-  {  
-    char inChar = Serial1.read(); // Входящий символ
-    
-    if (inChar == '\0') 
-    {
-      endOfString = true;
-    }
+  int startIndex = string.indexOf("GET");
+  int endIndex = string.indexOf("HTTP");
 
-    inString += inChar;
+  String result;
+
+  // Проверяем нашлись ли пограничные строки
+  if ((startIndex == -1) || (endIndex == -1)) {
+    result = "not found";
+  } else {
+    result = string.substring(startIndex + 4, endIndex - 1);
   }
 
-  return inString;
+  return result;
+}
+
+String getTitle(String url) {
+
+  // Ищем заголовок
+
+  String title = url;
+
+  int firstIndex = title.indexOf('/');
+  if (firstIndex != -1) {
+    title = title.substring(firstIndex + 1);
+  }
+
+  int secondIndex = title.indexOf('/');
+  if (secondIndex != -1) {
+    title = title.substring(0, secondIndex);
+  }
+
+  return title;
+}
+
+Light parseLight(String parameters) {
+
+  String params = parameters;
+  Light light = Light();
+  
+  int questionIndex = params.indexOf('?');
+  if (questionIndex != -1) {
+    params = params.substring(questionIndex + 1);
+  }
+
+  int ampersandIndex = params.indexOf('?');
+  while (ampersandIndex != -1) {
+
+    String param = params.substring(0, ampersandIndex);
+
+    int equalIndex = params.indexOf('=');
+    if (equalIndex != -1) {
+
+      String paramName = params.substring(0, equalIndex);
+      String paramValue = params.substring(equalIndex + 1); 
+
+      if (paramName == "bright") {
+        light.bright = paramValue.toInt();
+      } else if (paramName == "turnOn") {
+        light.turnOn = paramValue.toInt();
+      }
+    }
+
+    ampersandIndex = params.indexOf('?');
+  }
+
+  return light;
+}
+
+LED parseLED(String parameters) {
+  
 }
 
