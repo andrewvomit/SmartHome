@@ -76,78 +76,32 @@ void loop() {
         Light mainLight = parseLight(url);
         updateLight(mainLight);
 
-        // Собираем ответ
-        json += "{response: ";
-        json += "{title: ";
-        json += mainLight.title;
-        json += ", turnOn: ";
-        json += mainLight.turnOn;
-        json += ", bright: ";
-        json += mainLight.bright;
-        json += "}}";
+        json += buildJSON(mainLight, LED(), getLightSensor(), getThermometr());
       
       } else if (title == "led") {
       
         LED led = parseLED(url);
         updateLED(led);
 
-        // Собираем ответ
-        json += "{response: ";
-        json += "{title: ";
-        json += led.title;
-        json += ", turnOn: ";
-        json += led.turnOn;
-        json += ", red: ";
-        json += led.red;
-        json += ", blue: ";
-        json += led.blue;
-        json += ", green: ";
-        json += led.green;
-        json += "}}";
-   
+        json += buildJSON(Light(), led, getLightSensor(), getThermometr());
+
       } else if (title == "led") {
       
         LED led = parseLED(url);
         updateLED(led);
 
-        // Собираем ответ
-        json += "{response: ";
-        json += "{title: ";
-        json += led.title;
-        json += ", turnOn: ";
-        json += led.turnOn;
-        json += ", red: ";
-        json += led.red;
-        json += ", blue: ";
-        json += led.blue;
-        json += ", green: ";
-        json += led.green;
-        json += "}}";
-   
+        json += buildJSON(Light(), led, getLightSensor(), getThermometr());
+
       } else if (title == "thermometr") {
-      
-        Thermometr thermometr = getThermometr();
 
-        // Собираем ответ
-        json += "{response: ";
-        json += "{title: ";
-        json += thermometr.title;
-        json += ", value: ";
-        json += thermometr.value;
-        json += "}}";
-        
+        json += buildJSON(Light(), LED(), getLightSensor(), getThermometr());
+
       } else if (title == "lightSensor") {
       
-        LightSensor lightSensor = getLightSensor();
-
-        // Собираем ответ
-        json += "{response: ";
-        json += "{title: ";
-        json += lightSensor.title;
-        json += ", value: ";
-        json += lightSensor.value;
-        json += "}}";
+        json += buildJSON(Light(), LED(), getLightSensor(), getThermometr());
       }  
+
+      Serial.println("Prepare for data send");
 
       String cipSend = "AT+CIPSEND=";
       cipSend += connectionId;
@@ -156,13 +110,20 @@ void loop() {
       cipSend += "\r\n";
 
       sendData(cipSend, 1000, DEBUG);
-      sendData(json, 1000, DEBUG);
+      Serial.println("Отправка команды для ответа");
+      delay(500);
+      
+      sendData(json, 2000, DEBUG);
+      Serial.println("Отправка данных для ответа");
+      delay(2000);
 
       String closeCommand = "AT+CIPCLOSE=";
       closeCommand += connectionId; // Присоединяем connection id
       closeCommand += "\r\n";
  
-      sendData(closeCommand, 3000, DEBUG);
+      sendData(closeCommand, 1000, DEBUG);
+      Serial.println("Отправка команды для закрытия соединения");
+      delay(500);
 
       Serial.println(closeCommand);
     }
@@ -175,7 +136,7 @@ void initWifiModule() {
   sendData("AT+RST\r\n", 2000, DEBUG); // Сброс
   sendData("AT+CWJAP=\"Matrix\",\"Dsltkrf67346734\"\r\n", 2000, DEBUG); // Подключаемся к Wi-Fi
   delay(3000);
-  sendData("AT+CWMODE=1\r\n", 1000, DEBUG);
+  sendData("AT+CWMODE=1\r\n", 3000, DEBUG);
   sendData("AT+CIFSR\r\n", 1000, DEBUG); // Показываем IP адрес
   sendData("AT+CIPMUX=1\r\n", 1000, DEBUG); // Разрешаем несколько соединений одновременно
   sendData("AT+CIPSERVER=1,80\r\n", 1000, DEBUG); // Запускаем сервак на 80 порту
@@ -406,3 +367,67 @@ void updateLED(LED led) {
     analogWrite(LED_GREEN_PIN, 0);     
   }
 }
+/*************************************************/
+// Сбор JSON со всеми состояниями
+String buildJSON(Light light, LED led, LightSensor lightSensor, Thermometr thermometr) {
+  String json = "";
+  
+  json += "{response: ";
+  
+  // Добавляем свет в ответ
+  json += "[{title: ";
+  json += light.title;
+  json += ", turnOn: ";
+  json += light.turnOn;
+  json += ", bright: ";
+  json += light.bright;
+  json += "},";
+
+  // Добавляем подсветку в ответ
+  json += "{title: ";
+  json += led.title;
+  json += ", turnOn: ";
+  json += led.turnOn;
+  json += ", red: ";
+  json += led.red;
+  json += ", blue: ";
+  json += led.blue;
+  json += ", green: ";
+  json += led.green;
+  json += "}}";json += "{title: ";
+  json += led.title;
+  json += ", turnOn: ";
+  json += led.turnOn;
+  json += ", red: ";
+  json += led.red;
+  json += ", blue: ";
+  json += led.blue;
+  json += ", green: ";
+  json += led.green;
+  json += "},";
+
+  // Добавляем значения с термометра в ответ
+  json += "{title: ";
+  json += thermometr.title;
+  json += ", value: ";
+  json += thermometr.value;
+  json += "}}";json += "{title: ";
+  json += thermometr.title;
+  json += ", value: ";
+  json += thermometr.value;
+  json += "},";
+
+  // Добавляем значения с датчика в ответ
+  json += "{title: ";
+  json += lightSensor.title;
+  json += ", value: ";
+  json += lightSensor.value;
+  json += "}}";json += "{title: ";
+  json += lightSensor.title;
+  json += ", value: ";
+  json += lightSensor.value;
+  json += "}]";
+
+  json += "}";
+}
+
