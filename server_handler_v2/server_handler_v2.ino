@@ -8,24 +8,24 @@
 #define esp8266 Serial1
 #define speed8266 9600
 
+// Wi-Fi
+#define WIFI_NAME "Matrix"
+#define WIFI_PASS "Dsltkrf67346734"
+
 // Режим
 #define DEBUG true
 
-// Свет
+// Пины света
 #define LIGHT_PIN 3
 
-// Подсветка
+// Пины подсветки
 #define LED_RED_PIN 9
 #define LED_BLUE_PIN 10
 #define LED_GREEN_PIN 11
 
-// Датчики
+// Пины датчиков
 #define THERMOMETR_PIN A0
 #define LIGHT_SENSOR_PIN A0
-
-// Wi-Fi
-#define WIFI_NAME "Matrix"
-#define WIFI_PASS "Dsltkrf67346734"
 
 // Одноцветный светильник
 struct Light {
@@ -59,8 +59,8 @@ struct LightSensor {
 String requestString;
  
 void setup() {
-  esp8266.begin(speed8266); 
-  Serial.begin(9600);
+  esp8266.begin(speed8266); // Открываем соединение с Wi-Fi контроллером
+  Serial.begin(9600); // Открываем
   reset8266(); // Перегружаем все датчики
   initWifiModule(); // Запускаем и настраиваем сервак
 }
@@ -83,35 +83,35 @@ void loop() {
 
       String title = getTitle(url);
       Serial.println("title = " + title);
-      
+    
       if (title == "mainLight") {
         
         Light mainLight = parseLight(url);
         updateLight(mainLight);
 
-        json += buildJSON(mainLight, LED(), getLightSensor(), getThermometr());
+        json += buildJSON(mainLight, getLED(), getLightSensor(), getThermometr());
       
       } else if (title == "led") {
       
         LED led = parseLED(url);
         updateLED(led);
 
-        json += buildJSON(Light(), led, getLightSensor(), getThermometr());
+        json += buildJSON(getMainLight(), led, getLightSensor(), getThermometr());
 
       } else if (title == "led") {
       
         LED led = parseLED(url);
         updateLED(led);
 
-        json += buildJSON(Light(), led, getLightSensor(), getThermometr());
+        json += buildJSON(getMainLight(), led, getLightSensor(), getThermometr());
 
       } else if (title == "thermometr") {
 
-        json += buildJSON(Light(), LED(), getLightSensor(), getThermometr());
+        json += buildJSON(getMainLight(), getLED(), getLightSensor(), getThermometr());
 
       } else if (title == "lightSensor") {
       
-        json += buildJSON(Light(), LED(), getLightSensor(), getThermometr());
+        json += buildJSON(getMainLight(), getLED(), getLightSensor(), getThermometr());
       }  
 
       Serial.println("json = " + json);
@@ -330,6 +330,40 @@ LED parseLED(String parameters) {
 }
 
 /*************************************************/
+// Получение данных со света
+Light getMainLight() {
+
+  //pinMode(LIGHT_PIN, INPUT);
+
+  Light light = Light();
+  light.title = "mainLight";
+  
+  light.bright = analogRead(LIGHT_PIN);
+  light.turnOn = (light.bright > 0);
+
+  return light;
+}
+
+/*************************************************/
+// Получение данных с подсветки
+LED getLED() {
+
+  //pinMode(LED_RED_PIN, INPUT);
+  //pinMode(LED_GREEN_PIN, INPUT);
+  //pinMode(LED_BLUE_PIN, INPUT);
+
+  LED led = LED();
+  led.title = "led";
+  
+  led.red = analogRead(LED_RED_PIN);
+  led.green = analogRead(LED_GREEN_PIN);
+  led.blue = analogRead(LED_BLUE_PIN);
+  led.turnOn = ((led.red > 0) || (led.green > 0) || (led.blue > 0));
+
+  return led;
+}
+
+/*************************************************/
 // Получение данных с термометра
 Thermometr getThermometr() {
 
@@ -358,6 +392,9 @@ LightSensor getLightSensor() {
 /*************************************************/
 // Обработка света
 void updateLight(Light light) {
+
+  //pinMode(LIGHT_PIN, OUTPUT);
+  
   if (light.turnOn == 1) {
     analogWrite(LIGHT_PIN, light.bright);    
   } else {
@@ -368,6 +405,11 @@ void updateLight(Light light) {
 /*************************************************/
 // Обработка подсветки
 void updateLED(LED led) {
+
+  //pinMode(LED_RED_PIN, OUTPUT);
+  //pinMode(LED_GREEN_PIN, OUTPUT);
+  //pinMode(LED_BLUE_PIN, OUTPUT);
+  
   if (led.turnOn == 1) {
     analogWrite(LED_RED_PIN, led.red); 
     analogWrite(LED_BLUE_PIN, led.blue); 
@@ -378,14 +420,13 @@ void updateLED(LED led) {
     analogWrite(LED_GREEN_PIN, 0);     
   }
 }
+
 /*************************************************/
 // Сбор JSON со всеми состояниями
 String buildJSON(Light light, LED led, LightSensor lightSensor, Thermometr thermometr) {
   String json = "";
   
   json += "{response: ";
-
-  Serial.println("1st = " + json);
   
   // Добавляем свет в ответ
   json += "[{title: ";
@@ -395,8 +436,6 @@ String buildJSON(Light light, LED led, LightSensor lightSensor, Thermometr therm
   json += ", bright: ";
   json += light.bright;
   json += "}, ";
-
-  Serial.println("2st = " + json);
 
   // Добавляем подсветку в ответ
   json += "{title: ";
@@ -411,16 +450,12 @@ String buildJSON(Light light, LED led, LightSensor lightSensor, Thermometr therm
   json += led.green;
   json += "}, ";
 
-  Serial.println("3st = " + json);
-
   // Добавляем значения с термометра в ответ
   json += "{title: ";
   json += thermometr.title;
   json += ", value: ";
   json += thermometr.value;
   json += "}, ";
-
-  Serial.println("4st = " + json);
 
   // Добавляем значения с датчика в ответ
   json += "{title: ";
@@ -430,8 +465,6 @@ String buildJSON(Light light, LED led, LightSensor lightSensor, Thermometr therm
   json += "}]";
 
   json += "}";
-
-  Serial.println("5st = " + json);
 
   return json;
 }
