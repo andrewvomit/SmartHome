@@ -70,7 +70,11 @@ void loop() {
       String url = parseRequest(requestString);
       String json = "";
 
+      Serial.println("url = " + url);
+
       String title = getTitle(url);
+      Serial.println("title = " + title);
+      
       if (title == "mainLight") {
         
         Light mainLight = parseLight(url);
@@ -101,6 +105,8 @@ void loop() {
         json += buildJSON(Light(), LED(), getLightSensor(), getThermometr());
       }  
 
+      Serial.println("json = " + json);
+
       Serial.println("Prepare for data send");
 
       String cipSend = "AT+CIPSEND=";
@@ -110,19 +116,19 @@ void loop() {
       cipSend += "\r\n";
 
       sendData(cipSend, 1000, DEBUG);
-      Serial.println("Отправка команды для ответа");
+      Serial.println("Send command to start send");
       delay(500);
       
-      sendData(json, 2000, DEBUG);
-      Serial.println("Отправка данных для ответа");
-      delay(2000);
+      sendData(json, 3000, DEBUG);
+      Serial.println("Send data");
+      delay(3000);
 
       String closeCommand = "AT+CIPCLOSE=";
       closeCommand += connectionId; // Присоединяем connection id
       closeCommand += "\r\n";
  
       sendData(closeCommand, 1000, DEBUG);
-      Serial.println("Отправка команды для закрытия соединения");
+      Serial.println("Send command to close connection");
       delay(500);
 
       Serial.println(closeCommand);
@@ -281,7 +287,6 @@ LED parseLED(String parameters) {
   int questionIndex = params.indexOf('?');
   if (questionIndex != -1) {
     params = params.substring(questionIndex + 1);
-    Serial.println(params);
   }
 
   int ampersandIndex = params.indexOf('&');
@@ -291,15 +296,12 @@ LED parseLED(String parameters) {
     ampersandIndex = params.indexOf('&');
 
     String param = params.substring(0, ampersandIndex);
-    Serial.println(param);
 
     int equalIndex = params.indexOf('=');
     if (equalIndex != -1) {
 
       String paramName = param.substring(0, equalIndex);
-      Serial.println(paramName);
       String paramValue = param.substring(equalIndex + 1); 
-      Serial.println(paramValue);
 
       if (paramName == "red") {
         led.red = paramValue.toInt();
@@ -373,6 +375,8 @@ String buildJSON(Light light, LED led, LightSensor lightSensor, Thermometr therm
   String json = "";
   
   json += "{response: ";
+
+  Serial.println("1st = " + json);
   
   // Добавляем свет в ответ
   json += "[{title: ";
@@ -381,7 +385,9 @@ String buildJSON(Light light, LED led, LightSensor lightSensor, Thermometr therm
   json += light.turnOn;
   json += ", bright: ";
   json += light.bright;
-  json += "},";
+  json += "}, ";
+
+  Serial.println("2st = " + json);
 
   // Добавляем подсветку в ответ
   json += "{title: ";
@@ -394,40 +400,29 @@ String buildJSON(Light light, LED led, LightSensor lightSensor, Thermometr therm
   json += led.blue;
   json += ", green: ";
   json += led.green;
-  json += "}}";json += "{title: ";
-  json += led.title;
-  json += ", turnOn: ";
-  json += led.turnOn;
-  json += ", red: ";
-  json += led.red;
-  json += ", blue: ";
-  json += led.blue;
-  json += ", green: ";
-  json += led.green;
-  json += "},";
+  json += "}, ";
+
+  Serial.println("3st = " + json);
 
   // Добавляем значения с термометра в ответ
   json += "{title: ";
   json += thermometr.title;
   json += ", value: ";
   json += thermometr.value;
-  json += "}}";json += "{title: ";
-  json += thermometr.title;
-  json += ", value: ";
-  json += thermometr.value;
-  json += "},";
+  json += "}, ";
+
+  Serial.println("4st = " + json);
 
   // Добавляем значения с датчика в ответ
   json += "{title: ";
   json += lightSensor.title;
   json += ", value: ";
   json += lightSensor.value;
-  json += "}}";json += "{title: ";
-  json += lightSensor.title;
-  json += ", value: ";
-  json += lightSensor.value;
   json += "}]";
 
   json += "}";
-}
 
+  Serial.println("5st = " + json);
+
+  return json;
+}
