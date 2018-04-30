@@ -4,19 +4,28 @@
 * Adapted by andrewvomit
 **************************************************************************/
 
+// esp8266
 #define esp8266 Serial1
 #define speed8266 9600
- 
+
+// Режим
 #define DEBUG true
 
+// Свет
 #define LIGHT_PIN 3
 
+// Подсветка
 #define LED_RED_PIN 9
 #define LED_BLUE_PIN 10
 #define LED_GREEN_PIN 11
 
+// Датчики
 #define THERMOMETR_PIN A0
 #define LIGHT_SENSOR_PIN A0
+
+// Wi-Fi
+#define WIFI_NAME "Matrix"
+#define WIFI_PASS "Dsltkrf67346734"
 
 // Одноцветный светильник
 struct Light {
@@ -140,7 +149,7 @@ void loop() {
 // Инициализация Wi-Fi модуля
 void initWifiModule() {
   sendData("AT+RST\r\n", 2000, DEBUG); // Сброс
-  sendData("AT+CWJAP=\"Matrix\",\"Dsltkrf67346734\"\r\n", 2000, DEBUG); // Подключаемся к Wi-Fi
+  sendData("AT+CWJAP=\"" + String(WIFI_NAME) + "\",\"" + String(WIFI_PASS) + "\"\r\n", 2000, DEBUG); // Подключаемся к Wi-Fi
   delay(3000);
   sendData("AT+CWMODE=1\r\n", 3000, DEBUG);
   sendData("AT+CIFSR\r\n", 1000, DEBUG); // Показываем IP адрес
