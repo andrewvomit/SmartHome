@@ -13,7 +13,7 @@
 #define WIFI_PASS "Dsltkrf67346734"
 
 // Режим
-#define DEBUG true
+#define DEBUG false //true
 
 // Пины света
 #define LIGHT_PIN 3
@@ -57,14 +57,26 @@ struct LightSensor {
 
 // Строка запроса с девайса
 String requestString;
- 
+
+/*************************************************/
+// Печать в консоль
+void consolePrint(String string) {
+  if (DEBUG) {
+    Serial.println(string);
+  }
+}
+
+/*************************************************/
+// Настройка
 void setup() {
   esp8266.begin(speed8266); // Открываем соединение с Wi-Fi контроллером
   Serial.begin(9600); // Открываем
   reset8266(); // Перегружаем все датчики
   initWifiModule(); // Запускаем и настраиваем сервак
 }
- 
+
+/*************************************************/
+// Петля :)
 void loop() {
   
   if (esp8266.available()) {
@@ -74,16 +86,15 @@ void loop() {
       int connectionId = esp8266.read() - 48;
 
       requestString = esp8266.readString();
-      Serial.println(requestString);
+      consolePrint(requestString);
 
       String url = parseRequest(requestString);
+
+      // Собираем json для ответа
+      
       String json = "";
-
-      Serial.println("url = " + url);
-
-      String title = getTitle(url);
-      Serial.println("title = " + title);
-    
+      String title = getTitle(url);    
+      
       if (title == "mainLight") {
         
         Light mainLight = parseLight(url);
@@ -114,33 +125,43 @@ void loop() {
         json += buildJSON(getMainLight(), getLED(), getLightSensor(), getThermometr());
       }  
 
-      Serial.println("json = " + json);
 
-      Serial.println("Prepare for data send");
+      // Собираем хедеры
+      
+      String httpHeader = "HTTP/1.1 200 OK\r\n";
+      httpHeader += "Content-Type: application/json; charset=utf-8\r\n"; 
+      httpHeader += "Content-Length: " + String(json.length()) + "\r\n";
+      httpHeader +="Connection: close\r\n\r\n";
+
+      // Собираем ответ полностью
+
+      String httpResponse = httpHeader + json + " ";
+
+      consolePrint(httpHeader);
+      consolePrint("Prepare for data send");
+      consolePrint(httpResponse);
 
       String cipSend = "AT+CIPSEND=";
       cipSend += connectionId;
       cipSend += ",";
-      cipSend += json.length();
+      cipSend += httpResponse.length();
       cipSend += "\r\n";
 
+      consolePrint("Send command to start send");
       sendData(cipSend, 1000, DEBUG);
-      Serial.println("Send command to start send");
-      delay(500);
-      
-      sendData(json, 3000, DEBUG);
-      Serial.println("Send data");
-      delay(3000);
+      delay(100);
 
-      String closeCommand = "AT+CIPCLOSE=";
-      closeCommand += connectionId; // Присоединяем connection id
-      closeCommand += "\r\n";
- 
-      sendData(closeCommand, 1000, DEBUG);
-      Serial.println("Send command to close connection");
-      delay(500);
+      consolePrint("Send data");
+      sendData(httpResponse, 3000, DEBUG);
+      //delay(2000);
 
-      Serial.println(closeCommand);
+      //String closeCommand = "AT+CIPCLOSE=";
+      //closeCommand += connectionId; // Присоединяем connection id
+      //closeCommand += "\r\n";
+
+      //consolerPrint("Send command to close connection");
+      //sendData(closeCommand, 1000, DEBUG);
+      //delay(500);
     }
   }
 }
@@ -171,9 +192,9 @@ String sendData(String command, const int timeout, boolean debug) {
       response += c;
     }
   }
-  if (debug) {
-    Serial.print(response);
-  }
+  
+  consolePrint(response);
+  
   return response;
 }
 
@@ -252,7 +273,7 @@ Light parseLight(String parameters) {
   int questionIndex = params.indexOf('?');
   if (questionIndex != -1) {
     params = params.substring(questionIndex + 1);
-    Serial.println(params);
+    consolePrint(params);
   }
 
   int ampersandIndex = params.indexOf('&');
@@ -262,15 +283,15 @@ Light parseLight(String parameters) {
     ampersandIndex = params.indexOf('&');
 
     String param = params.substring(0, ampersandIndex);
-    Serial.println(param);
+    consolePrint(param);
 
     int equalIndex = params.indexOf('=');
     if (equalIndex != -1) {
 
       String paramName = param.substring(0, equalIndex);
-      Serial.println(paramName);
+      consolePrint(paramName);
       String paramValue = param.substring(equalIndex + 1); 
-      Serial.println(paramValue);
+      consolePrint(paramValue);
 
       if (paramName == "bright") {
         light.bright = paramValue.toInt();
