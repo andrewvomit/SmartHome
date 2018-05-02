@@ -129,6 +129,7 @@ void loop() {
       // Собираем хедеры
       
       String httpHeader = "HTTP/1.1 200 OK\r\n";
+      httpHeader += "Host: 192.168.2.40\r\n";
       httpHeader += "Content-Type: application/json; charset=utf-8\r\n"; 
       httpHeader += "Content-Length: " + String(json.length()) + "\r\n";
       httpHeader +="Connection: close\r\n\r\n";
@@ -152,6 +153,7 @@ void loop() {
       delay(100);
 
       consolePrint("Send data");
+      Serial.println(httpResponse);
       sendData(httpResponse, 3000, DEBUG);
       //delay(2000);
 
@@ -392,7 +394,7 @@ Thermometr getThermometr() {
   thermometr.title = "thermometr";
 
   float voltage = analogRead(THERMOMETR_PIN) * 5.0 / 1023.0;
-  float temperature = -14.46 * log((10000.0 * voltage) / (5.0 - voltage) / 270074.0) + 6.0;
+  float temperature = -14.46 * log((10000.0 * voltage) / (5.0 - voltage) / 270074.0) - 13.0;
 
   thermometr.value = temperature;
 
@@ -405,7 +407,7 @@ LightSensor getLightSensor() {
 
   LightSensor lightSensor = LightSensor();
   lightSensor.title = "lightSensor";
-  lightSensor.value = analogRead(LIGHT_SENSOR_PIN);
+  lightSensor.value = analogRead(LIGHT_SENSOR_PIN) / 20.0;
 
   return lightSensor;
 }
@@ -447,45 +449,46 @@ void updateLED(LED led) {
 String buildJSON(Light light, LED led, LightSensor lightSensor, Thermometr thermometr) {
   String json = "";
   
-  json += "{response: ";
+  json += "{" + String('"') + "response" + String('"') + ":[";
+  //json += "{" + String('"') + "devices" + String('"') + ":[";
   
   // Добавляем свет в ответ
-  json += "[{title: ";
-  json += light.title;
-  json += ", turnOn: ";
+  json += "{" + String('"') + "title" + String('"') + ":";
+  json += String('"') + light.title + String('"');
+  json += "," + String('"') + "turnOn" + String('"') + ":";
   json += light.turnOn;
-  json += ", bright: ";
+  json += "," + String('"') + "bright" + String('"') + ":";
   json += light.bright;
-  json += "}, ";
+  json += "},";
 
   // Добавляем подсветку в ответ
-  json += "{title: ";
-  json += led.title;
-  json += ", turnOn: ";
+  json += "{" + String('"') + "title" + String('"') + ":";
+  json += String('"') + led.title + String('"');
+  json += "," + String('"') + "turnOn" + String('"') + ":";
   json += led.turnOn;
-  json += ", red: ";
+  json += "," + String('"') + "red" + String('"') + ":";
   json += led.red;
-  json += ", blue: ";
+  json += "," + String('"') + "blue" + String('"') + ":";
   json += led.blue;
-  json += ", green: ";
+  json += "," + String('"') + "green" + String('"') + ":";
   json += led.green;
-  json += "}, ";
+  json += "},";
 
   // Добавляем значения с термометра в ответ
-  json += "{title: ";
-  json += thermometr.title;
-  json += ", value: ";
+  json += "{" + String('"') + "title" + String('"') + ":";
+  json += String('"') + thermometr.title + String('"');
+  json += "," + String('"') + "value" + String('"') + ":";
   json += thermometr.value;
-  json += "}, ";
+  json += "},";
 
   // Добавляем значения с датчика в ответ
-  json += "{title: ";
-  json += lightSensor.title;
-  json += ", value: ";
+  json += "{" + String('"') + "title" + String('"') + ":";
+  json += String('"') + lightSensor.title + String('"');
+  json += "," + String('"') + "value" + String('"') + ":";
   json += lightSensor.value;
-  json += "}]";
-
   json += "}";
+
+  json += "]}";
 
   return json;
 }
